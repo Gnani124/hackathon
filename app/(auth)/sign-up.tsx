@@ -20,7 +20,6 @@ import { UserRole } from '@/types';
 const roleOptions: { label: string; value: UserRole }[] = [
   { label: 'Student', value: 'student' },
   { label: 'Faculty', value: 'faculty' },
-  { label: 'Parent', value: 'parent' },
 ];
 
 export default function SignUpScreen() {

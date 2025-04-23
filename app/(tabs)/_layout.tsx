@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
-import { Chrome as Home, Calendar, User, Bell, BookOpen } from 'lucide-react-native';
+import { Chrome as Home, Calendar, User, Bell, BookOpen, Compass } from 'lucide-react-native';
 import { Platform } from 'react-native';
 
 export default function TabLayout() {
@@ -44,6 +44,15 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ color, size }) => (
             <Home size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: 'Explore',
+          tabBarIcon: ({ color, size }) => (
+            <Compass size={size} color={color} />
           ),
         }}
       />

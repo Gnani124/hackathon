@@ -1,168 +1,144 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
-import { format } from 'date-fns';
-import { Event } from '../../types';
-import { Card } from '../ui/Card';
-import { MapPin, Calendar, Users } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ViewStyle, TextStyle, ImageStyle } from 'react-native';
+import { Card } from '@/components/ui/Card';
+import { Calendar, MapPin, Users, Image as ImageIcon } from 'lucide-react-native';
+import { Event } from '@/types';
 
 interface EventCardProps {
   event: Event;
+  onPress?: () => void;
   compact?: boolean;
 }
 
-export const EventCard: React.FC<EventCardProps> = ({ event, compact = false }) => {
-  const router = useRouter();
-  const defaultImage = 'https://images.pexels.com/photos/2774556/pexels-photo-2774556.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1';
+export function EventCard({ event, onPress, compact = false }: EventCardProps) {
+  const [imageError, setImageError] = useState(false);
   
-  const navigateToEventDetails = () => {
-    router.push(`/events/${event.id}`);
+  const cardStyle = compact ? StyleSheet.flatten([styles.card, styles.compactCard]) : styles.card;
+  const imageContainerStyle = compact ? StyleSheet.flatten([styles.imageContainer, styles.compactImageContainer]) : styles.imageContainer;
+  const contentStyle = compact ? StyleSheet.flatten([styles.content, styles.compactContent]) : styles.content;
+  const titleStyle = compact ? StyleSheet.flatten([styles.title, styles.compactTitle]) : styles.title;
+  const descriptionStyle = compact ? StyleSheet.flatten([styles.description, styles.compactDescription]) : styles.description;
+  const detailsStyle = compact ? StyleSheet.flatten([styles.details, styles.compactDetails]) : styles.details;
+
+  const handleImageError = () => {
+    setImageError(true);
   };
 
-  if (compact) {
-    return (
-      <TouchableOpacity onPress={navigateToEventDetails} activeOpacity={0.7}>
-        <Card style={styles.compactCard}>
-          <View style={styles.compactContent}>
-            <View style={styles.dateBox}>
-              <Text style={styles.dateDay}>{format(new Date(event.date), 'dd')}</Text>
-              <Text style={styles.dateMonth}>{format(new Date(event.date), 'MMM')}</Text>
-            </View>
-            <View style={styles.compactDetails}>
-              <Text style={styles.compactTitle} numberOfLines={1}>{event.title}</Text>
-              <View style={styles.compactInfo}>
-                <MapPin size={14} color="#6B7280" />
-                <Text style={styles.compactInfoText} numberOfLines={1}>{event.location}</Text>
-              </View>
-            </View>
-          </View>
-        </Card>
-      </TouchableOpacity>
-    );
-  }
-
   return (
-    <TouchableOpacity onPress={navigateToEventDetails} activeOpacity={0.8}>
-      <Card style={styles.card}>
-        <Image 
-          source={{ uri: event.imageUrl || defaultImage }} 
-          style={styles.image}
-          resizeMode="cover"
-        />
-        <View style={styles.content}>
-          <Text style={styles.title}>{event.title}</Text>
-          <Text style={styles.description} numberOfLines={2}>{event.description}</Text>
+    <TouchableOpacity onPress={onPress}>
+      <Card style={cardStyle}>
+        <View style={imageContainerStyle}>
+          {event.imageUrl && !imageError ? (
+            <Image
+              source={{ uri: event.imageUrl }}
+              style={styles.image}
+              resizeMode="cover"
+              onError={handleImageError}
+            />
+          ) : (
+            <View style={styles.fallbackImage}>
+              <ImageIcon size={40} color="#6B7280" />
+            </View>
+          )}
+        </View>
+        <View style={contentStyle}>
+          <Text style={titleStyle}>{event.title}</Text>
+          <Text style={descriptionStyle} numberOfLines={compact ? 1 : 2}>
+            {event.description}
+          </Text>
           
-          <View style={styles.infoContainer}>
-            <View style={styles.infoItem}>
+          <View style={detailsStyle}>
+            <View style={styles.detailItem}>
               <Calendar size={16} color="#6B7280" />
-              <Text style={styles.infoText}>{format(new Date(event.date), 'MMM dd, yyyy')}</Text>
+              <Text style={styles.detailText}>
+                {new Date(event.date).toLocaleDateString()}
+              </Text>
             </View>
             
-            <View style={styles.infoItem}>
+            <View style={styles.detailItem}>
               <MapPin size={16} color="#6B7280" />
-              <Text style={styles.infoText}>{event.location}</Text>
+              <Text style={styles.detailText}>{event.location}</Text>
             </View>
             
-            <View style={styles.infoItem}>
-              <Users size={16} color="#6B7280" />
-              <Text style={styles.infoText}>{event.attendees.length} attending</Text>
-            </View>
+            {!compact && (
+              <View style={styles.detailItem}>
+                <Users size={16} color="#6B7280" />
+                <Text style={styles.detailText}>
+                  {event.attendees?.length || 0} attendees
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </Card>
     </TouchableOpacity>
   );
-};
-
-const windowWidth = Dimensions.get('window').width;
+}
 
 const styles = StyleSheet.create({
   card: {
-    padding: 0,
+    marginBottom: 16,
     overflow: 'hidden',
-    marginHorizontal: 16,
-    marginVertical: 8,
-  },
+  } as ViewStyle,
+  compactCard: {
+    marginBottom: 8,
+  } as ViewStyle,
+  imageContainer: {
+    width: '100%',
+    height: 200,
+  } as ViewStyle,
+  compactImageContainer: {
+    height: 120,
+  } as ViewStyle,
   image: {
     width: '100%',
-    height: 160,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
+    height: '100%',
+  } as ImageStyle,
+  fallbackImage: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  } as ViewStyle,
   content: {
     padding: 16,
-  },
+  } as ViewStyle,
+  compactContent: {
+    padding: 12,
+  } as ViewStyle,
   title: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 8,
-  },
-  description: {
-    fontSize: 14,
-    color: '#4B5563',
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  infoContainer: {
-    gap: 8,
-  },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  // Compact styles
-  compactCard: {
-    padding: 12,
-    marginHorizontal: 16,
-    marginVertical: 6,
-  },
-  compactContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dateBox: {
-    backgroundColor: '#3B82F6',
-    borderRadius: 8,
-    padding: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 50,
-    height: 50,
-  },
-  dateDay: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  dateMonth: {
-    fontSize: 12,
-    color: '#FFFFFF',
-  },
-  compactDetails: {
-    marginLeft: 12,
-    flex: 1,
-  },
+  } as TextStyle,
   compactTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  compactInfo: {
+    marginBottom: 4,
+  } as TextStyle,
+  description: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 16,
+  } as TextStyle,
+  compactDescription: {
+    marginBottom: 8,
+  } as TextStyle,
+  details: {
+    gap: 8,
+  } as ViewStyle,
+  compactDetails: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  } as ViewStyle,
+  detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-    gap: 4,
-  },
-  compactInfoText: {
-    fontSize: 13,
+    gap: 8,
+  } as ViewStyle,
+  detailText: {
+    fontSize: 14,
     color: '#6B7280',
-    flex: 1,
-  },
-});
+  } as TextStyle,
+}); 

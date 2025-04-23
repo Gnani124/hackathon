@@ -1,6 +1,6 @@
-export type UserRole = 'student' | 'faculty' | 'parent';
+export type UserRole = 'student' | 'faculty';
 
-export interface User {
+interface BaseUser {
   id: string;
   email: string;
   displayName: string;
@@ -9,39 +9,49 @@ export interface User {
   createdAt: number;
 }
 
-export interface Student extends User {
+export interface StudentUser extends BaseUser {
   role: 'student';
-  studentId: string;
-  department: string;
-  year: number;
-  semester: number;
-  parentId?: string;
+  rollNumber?: string;
+  studentId?: string;
+  department?: string;
+  year?: string;
+  semester?: string;
+  course?: string;
+  areaOfInterest?: string;
+  skills?: string[];
+  phoneNumber?: string;
+  attendance?: {
+    present: number;
+    absent: number;
+    total: number;
+    percentage: number;
+  };
 }
 
-export interface Faculty extends User {
+export interface FacultyUser extends BaseUser {
   role: 'faculty';
-  facultyId: string;
-  department: string;
-  designation: string;
-  subjects: string[];
+  department?: string;
+  designation?: string;
+  qualification?: string;
 }
 
-export interface Parent extends User {
-  role: 'parent';
-  childrenIds: string[];
-}
+export type User = StudentUser | FacultyUser;
 
 export interface Event {
   id: string;
   title: string;
   description: string;
-  date: number;
-  location: string;
-  organizer: string;
+  date: string;
+  time: string;
+  place: string;
+  location?: string;
+  image: string;
   imageUrl?: string;
-  attendees: string[];
+  totalPeople: number;
+  attendees?: string[];
   createdBy: string;
-  createdAt: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Exam {

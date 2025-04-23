@@ -8,30 +8,44 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
-  Platform
+  Platform,
+  Image,
+  Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { fetchEvents } from '@/services/eventsService';
+import { fetchEvents, checkAndAddMockEvents } from '@/services/eventsService';
 import { EventCard } from '@/components/events/EventCard';
 import { Event } from '@/types';
 import { useAuth } from '@/context/AuthContext';
-import { Plus, Filter } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { Plus, Filter, Calendar, MapPin, Users, Clock, AlertCircle } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { colors } from '../../constants/colors';
 
 export default function EventsScreen() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const router = useRouter();
 
   const loadEvents = async () => {
     try {
       setIsLoading(true);
+      setError(null);
+      
+      // First check if we need to add mock events
+      await checkAndAddMockEvents();
+      
+      // Then fetch all events
       const eventsData = await fetchEvents();
       setEvents(eventsData);
+      
+      if (eventsData.length === 0) {
+        setError('No events found. Pull down to refresh.');
+      }
     } catch (error) {
       console.error('Error loading events:', error);
+      setError('Failed to load events. Please try again later.');
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +63,7 @@ export default function EventsScreen() {
 
   const renderHeader = () => (
     <LinearGradient
-      colors={['#3B82F6', '#2563EB']}
+      colors={[colors.primary, colors.info]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.header}
@@ -62,26 +76,92 @@ export default function EventsScreen() {
           <Text style={styles.filterButtonText}>Filter</Text>
         </TouchableOpacity>
 
-        {(user?.role === 'faculty') && (
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={() => {
-              // Navigate to add event screen
-            }}
-          >
-            <Plus size={18} color="#3B82F6" />
-            <Text style={styles.addButtonText}>Add Event</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity 
+          style={styles.addButton}
+          onPress={() => router.push('/events/add')}
+        >
+          <Plus size={18} color={colors.primary} />
+          <Text style={styles.addButtonText}>Create Event</Text>
+        </TouchableOpacity>
       </View>
     </LinearGradient>
+  );
+
+  const renderEventCard = ({ item }: { item: Event }) => (
+    <TouchableOpacity 
+      style={styles.eventCard}
+      onPress={() => router.push(`/events/${item.id}`)}
+    >
+      <Image 
+        source={{ uri: item.image }} 
+        style={styles.eventImage}
+      />
+      <View style={styles.eventContent}>
+        <Text style={styles.eventTitle}>{item.title}</Text>
+        <Text style={styles.eventDescription} numberOfLines={2}>
+          {item.description}
+        </Text>
+        <View style={styles.eventDetails}>
+          <View style={styles.eventDetail}>
+            <Calendar size={16} color={colors.primary} />
+            <Text style={styles.eventDetailText}>
+              {new Date(item.date).toLocaleDateString()}
+            </Text>
+          </View>
+          <View style={styles.eventDetail}>
+            <Clock size={16} color={colors.primary} />
+            <Text style={styles.eventDetailText}>
+              {new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+          </View>
+          <View style={styles.eventDetail}>
+            <MapPin size={16} color={colors.primary} />
+            <Text style={styles.eventDetailText}>{item.place}</Text>
+          </View>
+          <View style={styles.eventDetail}>
+            <Users size={16} color={colors.primary} />
+            <Text style={styles.eventDetailText}>
+              {item.attendees?.length || 0}/{item.totalPeople} attendees
+            </Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 
   if (isLoading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading events...</Text>
       </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <LinearGradient
+          colors={[colors.primary, colors.info]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
+          <Text style={styles.headerTitle}>Events</Text>
+          <Text style={styles.headerSubtitle}>Stay updated with all campus activities</Text>
+        </LinearGradient>
+        
+        <View style={styles.errorContainer}>
+          <AlertCircle size={48} color={colors.error} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={loadEvents}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -90,7 +170,7 @@ export default function EventsScreen() {
       <FlatList
         data={events}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <EventCard event={item} />}
+        renderItem={renderEventCard}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={renderHeader}
         refreshControl={
@@ -99,6 +179,13 @@ export default function EventsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No events found</Text>
+            <TouchableOpacity 
+              style={styles.addEventButton}
+              onPress={() => router.push('/events/add')}
+            >
+              <Plus size={18} color="#FFFFFF" />
+              <Text style={styles.addEventButtonText}>Create Event</Text>
+            </TouchableOpacity>
           </View>
         }
       />
@@ -109,13 +196,13 @@ export default function EventsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   listContent: {
     paddingBottom: 20,
@@ -163,9 +250,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   addButtonText: {
-    color: '#3B82F6',
+    color: colors.primary,
     marginLeft: 6,
     fontWeight: '500',
+  },
+  eventCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  eventImage: {
+    width: '100%',
+    height: 200,
+  },
+  eventContent: {
+    padding: 16,
+  },
+  eventTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  eventDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  eventDetails: {
+    gap: 8,
+  },
+  eventDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  eventDetailText: {
+    fontSize: 14,
+    color: colors.text,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -174,6 +304,49 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textSecondary,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.text,
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  addEventButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
+  addEventButtonText: {
+    color: '#FFFFFF',
+    marginLeft: 8,
+    fontWeight: '500',
   },
 });

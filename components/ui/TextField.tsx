@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 
-interface TextFieldProps {
+export interface TextFieldProps {
   label?: string;
   placeholder?: string;
   value: string;
@@ -27,6 +27,7 @@ interface TextFieldProps {
   style?: ViewStyle;
   disabled?: boolean;
   required?: boolean;
+  leftIcon?: React.ReactNode;
 }
 
 export const TextField: React.FC<TextFieldProps> = ({
@@ -45,9 +46,14 @@ export const TextField: React.FC<TextFieldProps> = ({
   style,
   disabled = false,
   required = false,
+  leftIcon,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const inputStyles: TextStyle[] = [styles.input];
+  if (leftIcon) inputStyles.push(styles.inputWithIcon);
+  if (error) inputStyles.push(styles.inputError);
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -67,12 +73,9 @@ export const TextField: React.FC<TextFieldProps> = ({
           style,
         ]}
       >
+        {leftIcon && <View style={styles.iconContainer}>{leftIcon}</View>}
         <TextInput
-          style={[
-            styles.input,
-            multiline && styles.multilineInput,
-            secureTextEntry && styles.secureInput,
-          ]}
+          style={inputStyles}
           placeholder={placeholder}
           value={value}
           onChangeText={onChangeText}
@@ -131,6 +134,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
+  iconContainer: {
+    position: 'absolute',
+    left: 12,
+    zIndex: 1,
+  },
   input: {
     flex: 1,
     paddingHorizontal: 12,
@@ -142,6 +150,9 @@ const styles = StyleSheet.create({
         outlineStyle: 'none',
       },
     }),
+  },
+  inputWithIcon: {
+    paddingLeft: 40,
   },
   multilineInput: {
     minHeight: 100,
@@ -170,5 +181,9 @@ const styles = StyleSheet.create({
   disabled: {
     backgroundColor: '#F3F4F6',
     borderColor: '#E5E7EB',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+    borderWidth: 1,
   },
 });
